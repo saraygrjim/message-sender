@@ -23,3 +23,5 @@ Micros 2 - Listener
 
 Demo subscriber
 1. Escuchar mensajes que le envía listener
+
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:management
