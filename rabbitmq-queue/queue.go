@@ -77,6 +77,8 @@ func (q Queue) ReadMessage() ([]byte, error) {
 		for msg := range msgs {
 			fmt.Printf("[Listener] %s\n", string(msg.Body))
 		}
+
+		//send to websocket
 	}()
 
 	return nil, nil
