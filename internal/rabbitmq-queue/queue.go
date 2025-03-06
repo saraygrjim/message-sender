@@ -3,13 +3,13 @@ package rabbitmqqueue
 import (
 	"errors"
 	"fmt"
-	"github.com/streadway/amqp"
+	rabbitmq "github.com/streadway/amqp"
 	"log"
 )
 
 type Queue struct {
-	queue   amqp.Queue
-	channel *amqp.Channel
+	queue   rabbitmq.Queue
+	channel *rabbitmq.Channel
 }
 
 type QueueConfig struct {
@@ -26,9 +26,9 @@ func NewQueueConnection(config QueueConfig) (*Queue, error) {
 		config.Port = 5672
 	}
 
-	url := fmt.Sprintf("amqp://guest:guest@%s:%d/", config.Host, config.Port)
+	url := fmt.Sprintf("rabbitmq://guest:guest@%s:%d/", config.Host, config.Port)
 	fmt.Println(url)
-	conn, err := amqp.Dial(url)
+	conn, err := rabbitmq.Dial(url)
 	if err != nil {
 		log.Fatal("[Queue] error connecting with RabbitMQ: ", err)
 	}
@@ -50,7 +50,7 @@ func NewQueueConnection(config QueueConfig) (*Queue, error) {
 }
 
 func (q Queue) SendMessage(message []byte) error {
-	queueMessage := amqp.Publishing{
+	queueMessage := rabbitmq.Publishing{
 		ContentType: "text/plain",
 		Body:        message,
 	}

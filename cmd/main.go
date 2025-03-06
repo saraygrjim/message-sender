@@ -1,16 +1,16 @@
 package main
 
 import (
-	"gig-assessment/listener"
-	"gig-assessment/publisher"
-	"gig-assessment/rabbitmq-queue"
+	"gig-assessment/internal/rabbitmq-queue"
+	"gig-assessment/pkg/usecases/listener"
+	"gig-assessment/pkg/usecases/publisher"
 	"net/http"
 )
 
 func main() {
 	var err error
 
-	var config rabbitmqqueue.QueueConfig
+	var config rabbitmqqueue.rabbitmqqueue
 	config.Host = "localhost"
 	config.Port = 5672
 	queue, err := rabbitmqqueue.NewQueueConnection(config)

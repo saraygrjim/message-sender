@@ -3,7 +3,7 @@ package listener
 import (
 	"errors"
 	"fmt"
-	"gig-assessment/rabbitmq-queue"
+	"gig-assessment/internal/rabbitmq-queue"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -11,7 +11,7 @@ import (
 )
 
 type Listener struct {
-	queue *rabbitmqqueue.Queue
+	queue *rabbitmqqueue.rabbitmqqueue
 	//ws      *websocket.Conn
 	clients map[*websocket.Conn]bool
 	mu      sync.Mutex
