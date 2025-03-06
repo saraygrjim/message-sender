@@ -22,7 +22,7 @@ type NewPublisherOptions struct {
 
 func NewPublisher(opts NewPublisherOptions) (*Publisher, error) {
 	if opts.Queue == nil {
-		return nil, errors.New("requiered 'Queue' equal to nil")
+		return nil, errors.New("option 'Queue' is mandatory")
 	}
 
 	return &Publisher{
@@ -38,17 +38,17 @@ func (p *Publisher) InitWebSocketConnection(w http.ResponseWriter, r *http.Reque
 		},
 	} //todo: see the default values
 
-	connection, err := upgrader.Upgrade(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return err
 	}
 
-	//todo: review this
-	connection.SetReadLimit(512)
-	connection.SetReadDeadline(time.Now().Add(60 * time.Second))
-	connection.SetPongHandler(func(string) error { connection.SetReadDeadline(time.Now().Add(60 * time.Second)); return nil })
+	//todo: review this parameters
+	conn.SetReadLimit(512)
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(60 * time.Second)); return nil })
 
-	p.ws = connection
+	p.ws = conn
 
 	return nil
 }

@@ -32,15 +32,38 @@ func main() {
 		panic(err)
 	}
 
-	go func() {
-		l.ReadMessage()
-	}()
-
 	// register handlers
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		p.ManageMessage(w, r)
+		err = p.ManageMessage(w, r)
+		if err != nil {
+			panic(err)
+		}
 	})
 
-	http.ListenAndServe(":8080", nil)
+	http.HandleFunc("/echo", l.HandleWebSocket) // Maneja conexiones WebSocket
+
+	go func() {
+		err = http.ListenAndServe(":8080", nil)
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	go func() {
+		err = http.ListenAndServe(":8081", nil)
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	//err = l.InitWebSocketConnection()
+	//if err != nil {
+	//	panic(err)
+	//}
+
+	_, err = l.ReadMessage()
+	if err != nil {
+		panic(err)
+	}
 
 }
