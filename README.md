@@ -25,15 +25,14 @@
     - [ ] Print messages
 - [ ] Queue
     - [X] Basic connect, read and send
-    - [ ] Consumers and producer structure
     - [ ] Configure security and more parameters
-- [ ] Organize project structure following clean architecture
-- [ ] Cmd
+- [x] Organize project structure following clean architecture
+- [x] Cmd
 - [ ] Graph to initiate the app
 - [ ] Tests for all the app
 - [ ] Improve logs
 - [ ] Makefile
-- [ ] Improve naming
+- [x] Improve naming
 
 
 ### Starta rabbitmq image

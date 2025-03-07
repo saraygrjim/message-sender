@@ -1,16 +1,15 @@
 package main
 
 import (
-	"gig-assessment/pkg/wsbroadcaster"
-	"gig-assessment/pkg/wsreceiver"
+	"gig-assessment/pkg/microservices"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 )
 
 type App struct {
-	WSReceiver    *wsreceiver.WSReceiver
-	WSBroadcaster *wsbroadcaster.WSBroadcaster
+	WSReceiver    *microservices.WSReceiver
+	WSBroadcaster *microservices.WSBroadcaster
 }
 
 func (a App) serveWebsocketReceiverHTTP(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +23,7 @@ func (a App) serveWebsocketReceiverHTTP(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		panic(err)
 	}
-	defer conn.Close()
+	//defer conn.Close()
 
 	go a.WSReceiver.ReadMessage(conn)
 }
@@ -41,7 +40,7 @@ func (a App) serveWebsocketBroadcasterHTTP(w http.ResponseWriter, r *http.Reques
 		log.Println("[WSBroadcaster] Error updating websocket:", err)
 		return
 	}
-	defer conn.Close()
+	//defer conn.Close()
 
 	go a.WSBroadcaster.ReadClientMessage(conn)
 }

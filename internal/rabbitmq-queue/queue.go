@@ -3,60 +3,103 @@ package rabbitmqqueue
 import (
 	"errors"
 	"fmt"
+	"github.com/gofrs/uuid"
+	log "github.com/sirupsen/logrus"
 	rabbitmq "github.com/streadway/amqp"
-	"log"
+	"time"
 )
 
-type RabbitMQQueue struct {
-	queue   rabbitmq.Queue
-	channel *rabbitmq.Channel
-}
+const (
+	RetryTime    = 3 * time.Second
+	QueueNameTag = "queueName"
+	MessageTag   = "message"
+	ErrorTag     = "error"
+)
 
 type Queue interface {
 	SendMessage([]byte) error
 	ReadMessage() ([]byte, error)
 }
 
+type RabbitMQQueue struct {
+	queue   rabbitmq.Queue
+	channel *rabbitmq.Channel
+	logger  *log.Logger
+}
+
 var _ Queue = (*RabbitMQQueue)(nil)
 
 type QueueConfig struct {
-	Host string
-	Port int
+	Host     string
+	Port     int
+	Name     string
+	User     string
+	Password string
+	Logger   *log.Logger
 }
 
 func NewQueueConnection(config QueueConfig) (*RabbitMQQueue, error) {
+	if config.Logger == nil {
+		return nil, errors.New("option 'Logger' is mandatory")
+	}
 	if len(config.Host) == 0 {
 		config.Host = "localhost"
 	}
-
 	if config.Port == 0 {
 		config.Port = 5672
 	}
+	if len(config.Name) == 0 {
+		config.Name = uuid.Must(uuid.NewV4()).String()
+	}
+	if len(config.User) == 0 {
+		config.User = "guest"
+	}
+	if len(config.Password) == 0 {
+		config.Password = "guest"
+	}
 
-	url := fmt.Sprintf("amqp://guest:guest@%s:%d/", config.Host, config.Port)
-	fmt.Println(url)
+	url := fmt.Sprintf("amqp://%s:%s@%s:%d/", config.User, config.Password, config.Host, config.Port)
 	conn, err := rabbitmq.Dial(url)
 	if err != nil {
-		log.Fatal("[RabbitMQQueue] error connecting with RabbitMQ: ", err)
+		config.Logger.WithFields(log.Fields{
+			ErrorTag: err.Error(),
+		}).Errorf("[RabbitMQQueue] error connecting with RabbitMQ")
+		return nil, err
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatal("[RabbitMQQueue] error opening RabbitMQ channel: ", err)
+		config.Logger.WithFields(log.Fields{
+			ErrorTag: err.Error(),
+		}).Error("[RabbitMQQueue] error opening RabbitMQ channel")
+		return nil, err
 	}
 
-	q, err := ch.QueueDeclare("messages", false, false, false, false, nil)
+	q, err := ch.QueueDeclare(config.Name, false, false, false, false, nil)
 	if err != nil {
-		log.Fatal("[RabbitMQQueue] error in queue declaration:", err)
+		config.Logger.WithFields(log.Fields{
+			ErrorTag: err.Error(),
+		}).Error("[RabbitMQQueue] error in queue declaration")
+		return nil, err
 	}
+
+	config.Logger.WithFields(log.Fields{
+		QueueNameTag: q.Name,
+	}).Info("[RabbitMQQueue] queue successfully created")
 
 	return &RabbitMQQueue{
+		logger:  config.Logger,
 		queue:   q,
 		channel: ch,
 	}, nil
 }
 
 func (q RabbitMQQueue) SendMessage(message []byte) error {
+	q.logger.WithFields(log.Fields{
+		QueueNameTag: q.queue.Name,
+		MessageTag:   message,
+	}).Info("[RabbitMQQueue] sending message")
+
 	queueMessage := rabbitmq.Publishing{
 		ContentType: "text/plain",
 		Body:        message,
@@ -64,27 +107,50 @@ func (q RabbitMQQueue) SendMessage(message []byte) error {
 
 	err := q.channel.Publish("", q.queue.Name, false, false, queueMessage)
 	if err != nil {
-		msg := fmt.Sprintf("[RabbitMQQueue] error sending message to RabbitMQ: %s", err.Error())
-		log.Print(msg)
-		return errors.New(msg)
+		q.logger.WithFields(log.Fields{
+			QueueNameTag: q.queue.Name,
+			MessageTag:   message,
+			ErrorTag:     err.Error(),
+		}).Error("[RabbitMQQueue] error sending message to RabbitMQ")
+		return errors.New(fmt.Sprintf("error sending message to RabbitMQ: %s", err.Error()))
 	}
 
+	q.logger.WithFields(log.Fields{
+		QueueNameTag: q.queue.Name,
+		MessageTag:   message,
+	}).Debug("[RabbitMQQueue] message sent")
 	return nil
 }
 
 func (q RabbitMQQueue) ReadMessage() ([]byte, error) {
+	q.logger.WithFields(log.Fields{
+		QueueNameTag: q.queue.Name,
+	}).Info("[RabbitMQQueue] looking for messages")
 	for {
 		delivery, ok, err := q.channel.Get(q.queue.Name, true)
 		if err != nil {
-			log.Printf("[RabbitMQQueue] error reading messages: %s", err)
 			if errors.Is(err, rabbitmq.ErrClosed) {
+				q.logger.WithFields(log.Fields{
+					QueueNameTag: q.queue.Name,
+					ErrorTag:     err.Error(),
+				}).Error("[RabbitMQQueue] error reading message because channel is closed")
 				return nil, err
 			}
+
+			q.logger.WithFields(log.Fields{
+				QueueNameTag: q.queue.Name,
+				ErrorTag:     err.Error(),
+			}).Warnf("[RabbitMQQueue] error reading message, trying again in %d seconds", RetryTime)
+			time.Sleep(RetryTime)
 		}
 
 		if !ok {
 			continue
 		}
+
+		q.logger.WithFields(log.Fields{
+			QueueNameTag: q.queue.Name,
+		}).Debug("[RabbitMQQueue] message read")
 
 		return delivery.Body, nil
 	}
@@ -92,5 +158,22 @@ func (q RabbitMQQueue) ReadMessage() ([]byte, error) {
 }
 
 func (q RabbitMQQueue) Close() error {
-	return q.channel.Close()
+	q.logger.WithFields(log.Fields{
+		QueueNameTag: q.queue.Name,
+	}).Info("[RabbitMQQueue] closing channel message")
+
+	err := q.channel.Close()
+	if err != nil {
+		q.logger.WithFields(log.Fields{
+			QueueNameTag: q.queue.Name,
+			ErrorTag:     err.Error(),
+		}).Error("[RabbitMQQueue] error closing channel")
+		return err
+	}
+
+	q.logger.WithFields(log.Fields{
+		QueueNameTag: q.queue.Name,
+	}).Debug("[RabbitMQQueue] channel closed")
+
+	return nil
 }

@@ -2,32 +2,45 @@ package main
 
 import (
 	"gig-assessment/internal/rabbitmq-queue"
-	"gig-assessment/pkg/wsbroadcaster"
-	"gig-assessment/pkg/wsreceiver"
+	"gig-assessment/pkg/microservices"
+	log "github.com/sirupsen/logrus"
 	"net/http"
+	"os"
+	"time"
 )
 
 func main() {
 	var err error
 
-	var config rabbitmqqueue.QueueConfig
+	logger := log.New()
+	logger.SetOutput(os.Stdout)
+	logger.SetLevel(log.InfoLevel) // TODO: set as argument
+	logger.SetFormatter(&log.TextFormatter{
+		TimestampFormat: time.DateTime,
+		FullTimestamp:   true,
+	})
+
+	var config rabbitmqqueue.QueueConfig // TODO: set config as arguments
 	config.Host = "localhost"
 	config.Port = 5672
+	config.Logger = logger
 	queue, err := rabbitmqqueue.NewQueueConnection(config)
 	if err != nil {
 		panic(err)
 	}
 
-	var newWSReceiverOptions wsreceiver.NewWSReceiverOptions
+	var newWSReceiverOptions microservices.NewWSReceiverOptions
 	newWSReceiverOptions.Queue = queue
-	receiver, err := wsreceiver.NewWSReceiver(newWSReceiverOptions)
+	newWSReceiverOptions.Logger = logger
+	receiver, err := microservices.NewWSReceiver(newWSReceiverOptions)
 	if err != nil {
 		panic(err)
 	}
 
-	var newWSBroadcasterOptions wsbroadcaster.NewWSBroadcasterOptions
+	var newWSBroadcasterOptions microservices.NewWSBroadcasterOptions
 	newWSBroadcasterOptions.Queue = queue
-	broadcaster, err := wsbroadcaster.NewWSBroadcaster(newWSBroadcasterOptions)
+	newWSBroadcasterOptions.Logger = logger
+	broadcaster, err := microservices.NewWSBroadcaster(newWSBroadcasterOptions)
 	if err != nil {
 		panic(err)
 	}
