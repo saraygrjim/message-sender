@@ -30,11 +30,11 @@
 - [x] Cmd
 - [ ] Graph to initiate the app
 - [ ] Tests for all the app
-- [ ] Improve logs
+- [X] Improve logs
 - [ ] Makefile
 - [x] Improve naming
 
 
-### Starta rabbitmq image
+### Start rabbitmq image
 
 docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:management
