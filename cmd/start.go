@@ -1,20 +1,20 @@
-package main
+package cmd
 
 import (
-	"gig-assessment/internal/rabbitmq-queue"
-	"gig-assessment/pkg/microservices"
 	log "github.com/sirupsen/logrus"
-	"net/http"
+	"message-sender/internal/rabbitmq"
+	broadcasterGraph "message-sender/microservices/broadcaster/pkg/graph"
+	receiverGraph "message-sender/microservices/receiver/pkg/graph"
+	subscriberGraph "message-sender/microservices/subscriber/pkg/graph"
 	"os"
 	"time"
 )
 
-func main() {
+func Receiver() {
 	var err error
 
 	logger := log.New()
 	logger.SetOutput(os.Stdout)
-	logger.SetLevel(log.InfoLevel) // TODO: set as argument
 	logger.SetFormatter(&log.TextFormatter{
 		TimestampFormat: time.DateTime,
 		FullTimestamp:   true,
@@ -30,35 +30,69 @@ func main() {
 		panic(err)
 	}
 
-	var newWSReceiverOptions microservices.NewWSReceiverOptions
-	newWSReceiverOptions.Queue = queue
-	newWSReceiverOptions.Logger = logger
-	receiver, err := microservices.NewWSReceiver(newWSReceiverOptions)
+	var receiverOpts receiverGraph.ReceiverOptions
+	receiverOpts.Logger = logger
+	receiverOpts.Queue = queue
+	receiver, err := receiverGraph.Install(receiverOpts)
 	if err != nil {
 		panic(err)
 	}
 
-	var newWSBroadcasterOptions microservices.NewWSBroadcasterOptions
-	newWSBroadcasterOptions.Queue = queue
-	newWSBroadcasterOptions.Logger = logger
-	broadcaster, err := microservices.NewWSBroadcaster(newWSBroadcasterOptions)
+	receiver.StartWebsocketReceiverServer()
+
+}
+
+func Broadcaster() {
+	var err error
+
+	logger := log.New()
+	logger.SetOutput(os.Stdout)
+	logger.SetFormatter(&log.TextFormatter{
+		TimestampFormat: time.DateTime,
+		FullTimestamp:   true,
+	})
+
+	port := 5672
+	var config rabbitmqqueue.QueueConfig // TODO: set config as arguments
+	config.Port = &port
+	config.Logger = logger
+	config.Name = "messages-sender-queue"
+	queue, err := rabbitmqqueue.NewQueueConnection(config)
 	if err != nil {
 		panic(err)
 	}
 
-	app := App{
-		WSReceiver:    receiver,
-		WSBroadcaster: broadcaster,
+	var broadcasterOpts broadcasterGraph.BroadcasterOptions
+	broadcasterOpts.Logger = logger
+	broadcasterOpts.Queue = queue
+	broadcaster, err := broadcasterGraph.Install(broadcasterOpts)
+	if err != nil {
+		panic(err)
 	}
 
-	// register handlers
-	http.HandleFunc("/ws", app.serveWebsocketReceiverHTTP)
+	go broadcaster.StartWebsocketBroadcasterServer()
 
-	http.HandleFunc("/echo", app.serveWebsocketBroadcasterHTTP)
+	broadcaster.StartBroadcaster()
+}
 
-	go app.startWebsocketReceiverServer()
+func StartSubscriber() {
 
-	go app.startWebsocketBroadcasterServer()
+	logger := log.New()
+	logger.SetOutput(os.Stdout)
+	logger.SetFormatter(&log.TextFormatter{
+		TimestampFormat: time.DateTime,
+		FullTimestamp:   true,
+	})
 
-	app.startBroadcaster()
+	var subscriberOpts subscriberGraph.SubscriberOptions
+	subscriberOpts.Logger = logger
+	subscriber, err := subscriberGraph.Install(subscriberOpts)
+	if err != nil {
+		panic(err)
+	}
+
+	err = subscriber.StartSubscriber()
+	if err != nil {
+		panic(err)
+	}
 }

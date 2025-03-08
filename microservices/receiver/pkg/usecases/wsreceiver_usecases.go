@@ -1,55 +1,60 @@
 // Microservice 1
-package microservices
+package usecases
 
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	"gig-assessment/internal/rabbitmq-queue"
-	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+	"message-sender/internal/rabbitmq"
+	"message-sender/internal/websocket"
 )
 
-type WSReceiver struct {
-	queue  *rabbitmqqueue.RabbitMQQueue
-	logger *log.Logger
+type WSReceiver interface {
+	ReadMessage(conn *websocket.Connection)
+	SendMessageToQueue(message []byte)
 }
-
-type NewWSReceiverOptions struct {
-	Queue  *rabbitmqqueue.RabbitMQQueue
+type DefaultWSReceiverOptions struct {
+	Queue  rabbitmqqueue.Queue
 	Logger *log.Logger
 }
 
-func NewWSReceiver(opts NewWSReceiverOptions) (*WSReceiver, error) {
+var _ WSReceiver = (*DefaultWSReceiver)(nil)
+
+type DefaultWSReceiver struct {
+	queue  rabbitmqqueue.Queue
+	logger *log.Logger
+}
+
+func NewWSReceiver(opts DefaultWSReceiverOptions) (*DefaultWSReceiver, error) {
 	if opts.Queue == nil {
-		return nil, errors.New("option 'RabbitMQQueue' is mandatory")
+		return nil, errors.New("option 'Queue' is mandatory")
 	}
 	if opts.Logger == nil {
-		return nil, errors.New("option 'RabbitMQLogger' is mandatory")
+		return nil, errors.New("option 'Logger' is mandatory")
 	}
 
-	return &WSReceiver{
+	return &DefaultWSReceiver{
 		queue:  opts.Queue,
 		logger: opts.Logger,
 	}, nil
 }
 
-func (wsr *WSReceiver) ReadMessage(conn *websocket.Conn) {
-	wsr.logger.Info("[WSReceiver] reading message")
+func (wsr *DefaultWSReceiver) ReadMessage(conn *websocket.Connection) {
+	wsr.logger.Info("[WSReceiver] channel open. Reading messages...")
+	defer conn.Close()
 	for {
-		_, message, err := conn.ReadMessage()
+		message, err := conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			if websocket.IsUnexpectedCloseError(err) {
 				wsr.logger.WithFields(log.Fields{
 					ErrorTag: err.Error(),
-				}).Fatal("[WSReceiver] channel unexpectedly closed")
+				}).Info("[WSReceiver] channel closed")
 				return
 			}
 
 			wsr.logger.WithFields(log.Fields{
 				ErrorTag: err.Error(),
 			}).Error("[WSReceiver] there was an error reading the message")
-
 		}
 		if message == nil {
 			continue
@@ -60,8 +65,7 @@ func (wsr *WSReceiver) ReadMessage(conn *websocket.Conn) {
 	}
 }
 
-func (wsr *WSReceiver) SendMessageToQueue(message []byte) {
-	fmt.Println("non format message " + string(message))                             //todo: delete
+func (wsr *DefaultWSReceiver) SendMessageToQueue(message []byte) {
 	message = bytes.TrimSpace(bytes.Replace(message, []byte("\n"), []byte(" "), -1)) //todo: I am assuming that this is parsing the message, improve it with a function
 
 	wsr.logger.WithFields(log.Fields{

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gofrs/uuid"
+	rabbitmq "github.com/rabbitmq/amqp091-go"
 	log "github.com/sirupsen/logrus"
-	rabbitmq "github.com/streadway/amqp"
 	"time"
 )
 
