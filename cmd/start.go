@@ -21,7 +21,7 @@ func Receiver() {
 	})
 
 	port := 5672
-	var config rabbitmqqueue.QueueConfig // TODO: set config as arguments
+	var config rabbitmqqueue.QueueConfig
 	config.Port = &port
 	config.Logger = logger
 	config.Name = "messages-sender-queue"
@@ -53,7 +53,7 @@ func Broadcaster() {
 	})
 
 	port := 5672
-	var config rabbitmqqueue.QueueConfig // TODO: set config as arguments
+	var config rabbitmqqueue.QueueConfig
 	config.Port = &port
 	config.Logger = logger
 	config.Name = "messages-sender-queue"
@@ -76,7 +76,6 @@ func Broadcaster() {
 }
 
 func StartSubscriber() {
-
 	logger := log.New()
 	logger.SetOutput(os.Stdout)
 	logger.SetFormatter(&log.TextFormatter{
