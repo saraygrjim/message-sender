@@ -19,6 +19,7 @@ const (
 type Queue interface {
 	SendMessage([]byte) error
 	ReadMessage() ([]byte, error)
+	Close() error
 }
 
 type RabbitMQQueue struct {
@@ -30,35 +31,23 @@ type RabbitMQQueue struct {
 var _ Queue = (*RabbitMQQueue)(nil)
 
 type QueueConfig struct {
-	Host     string
-	Port     int
-	Name     string
-	User     string
-	Password string
-	Logger   *log.Logger
+	Port   *int
+	Name   string
+	Logger *log.Logger
 }
 
 func NewQueueConnection(config QueueConfig) (*RabbitMQQueue, error) {
 	if config.Logger == nil {
 		return nil, errors.New("option 'Logger' is mandatory")
 	}
-	if len(config.Host) == 0 {
-		config.Host = "localhost"
-	}
-	if config.Port == 0 {
-		config.Port = 5672
+	if config.Port == nil {
+		return nil, errors.New("option 'Port' is mandatory")
 	}
 	if len(config.Name) == 0 {
 		config.Name = uuid.Must(uuid.NewV4()).String()
 	}
-	if len(config.User) == 0 {
-		config.User = "guest"
-	}
-	if len(config.Password) == 0 {
-		config.Password = "guest"
-	}
 
-	url := fmt.Sprintf("amqp://%s:%s@%s:%d/", config.User, config.Password, config.Host, config.Port)
+	url := fmt.Sprintf("amqp://guest:guest@localhost:%d/", *config.Port)
 	conn, err := rabbitmq.Dial(url)
 	if err != nil {
 		config.Logger.WithFields(log.Fields{

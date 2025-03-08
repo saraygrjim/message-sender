@@ -20,10 +20,11 @@ func main() {
 		FullTimestamp:   true,
 	})
 
+	port := 5672
 	var config rabbitmqqueue.QueueConfig // TODO: set config as arguments
-	config.Host = "localhost"
-	config.Port = 5672
+	config.Port = &port
 	config.Logger = logger
+	config.Name = "messages-sender-queue"
 	queue, err := rabbitmqqueue.NewQueueConnection(config)
 	if err != nil {
 		panic(err)
