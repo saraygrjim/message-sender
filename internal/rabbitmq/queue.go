@@ -1,4 +1,4 @@
-package rabbitmqqueue
+package rabbitmq
 
 import (
 	"errors"
@@ -53,7 +53,7 @@ func NewQueueConnection(config QueueConfig) (*RabbitMQQueue, error) {
 		config.Logger.WithFields(log.Fields{
 			ErrorTag: err.Error(),
 		}).Errorf("[RabbitMQQueue] error connecting with RabbitMQ")
-		return nil, err
+		return nil, ErrConnecting
 	}
 
 	ch, err := conn.Channel()
@@ -61,7 +61,7 @@ func NewQueueConnection(config QueueConfig) (*RabbitMQQueue, error) {
 		config.Logger.WithFields(log.Fields{
 			ErrorTag: err.Error(),
 		}).Error("[RabbitMQQueue] error opening RabbitMQ channel")
-		return nil, err
+		return nil, ErrOpening
 	}
 
 	q, err := ch.QueueDeclare(config.Name, false, false, false, false, nil)
@@ -69,7 +69,7 @@ func NewQueueConnection(config QueueConfig) (*RabbitMQQueue, error) {
 		config.Logger.WithFields(log.Fields{
 			ErrorTag: err.Error(),
 		}).Error("[RabbitMQQueue] error in queue declaration")
-		return nil, err
+		return nil, ErrQueueDeclaration
 	}
 
 	config.Logger.WithFields(log.Fields{
@@ -101,7 +101,7 @@ func (q RabbitMQQueue) SendMessage(message []byte) error {
 			MessageTag:   message,
 			ErrorTag:     err.Error(),
 		}).Error("[RabbitMQQueue] error sending message to RabbitMQ")
-		return errors.New(fmt.Sprintf("error sending message to RabbitMQ: %s", err.Error()))
+		return ErrSendingMessage
 	}
 
 	q.logger.WithFields(log.Fields{
@@ -123,7 +123,7 @@ func (q RabbitMQQueue) ReadMessage() ([]byte, error) {
 					QueueNameTag: q.queue.Name,
 					ErrorTag:     err.Error(),
 				}).Error("[RabbitMQQueue] error reading message because channel is closed")
-				return nil, err
+				return nil, ErrChannelClosed
 			}
 
 			q.logger.WithFields(log.Fields{
@@ -157,7 +157,7 @@ func (q RabbitMQQueue) Close() error {
 			QueueNameTag: q.queue.Name,
 			ErrorTag:     err.Error(),
 		}).Error("[RabbitMQQueue] error closing channel")
-		return err
+		return ErrClosingChannel
 	}
 
 	q.logger.WithFields(log.Fields{
@@ -166,3 +166,10 @@ func (q RabbitMQQueue) Close() error {
 
 	return nil
 }
+
+var ErrConnecting = errors.New("error connecting with RabbitMQ")
+var ErrOpening = errors.New("error opening RabbitMQ channel")
+var ErrQueueDeclaration = errors.New("error in queue declaration")
+var ErrSendingMessage = errors.New("error sending message to RabbitMQ")
+var ErrChannelClosed = errors.New("error reading message because channel is closed")
+var ErrClosingChannel = errors.New("error closing channel")

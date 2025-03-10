@@ -2,26 +2,26 @@
 package usecases
 
 import (
-	"bytes"
-	"errors"
+	//"errors"
+	"github.com/go-errors/errors"
 	log "github.com/sirupsen/logrus"
 	"message-sender/internal/rabbitmq"
 	"message-sender/internal/websocket"
 )
 
 type WSReceiver interface {
-	ReadMessage(conn *websocket.Connection)
-	SendMessageToQueue(message []byte)
+	ReadMessage(conn websocket.Connection) error
+	SendMessageToQueue(message []byte) error
 }
 type DefaultWSReceiverOptions struct {
-	Queue  rabbitmqqueue.Queue
+	Queue  rabbitmq.Queue
 	Logger *log.Logger
 }
 
 var _ WSReceiver = (*DefaultWSReceiver)(nil)
 
 type DefaultWSReceiver struct {
-	queue  rabbitmqqueue.Queue
+	queue  rabbitmq.Queue
 	logger *log.Logger
 }
 
@@ -39,7 +39,7 @@ func NewWSReceiver(opts DefaultWSReceiverOptions) (*DefaultWSReceiver, error) {
 	}, nil
 }
 
-func (wsr *DefaultWSReceiver) ReadMessage(conn *websocket.Connection) {
+func (wsr *DefaultWSReceiver) ReadMessage(conn websocket.Connection) error {
 	wsr.logger.Info("[WSReceiver] channel open. Reading messages...")
 	defer conn.Close()
 	for {
@@ -49,39 +49,55 @@ func (wsr *DefaultWSReceiver) ReadMessage(conn *websocket.Connection) {
 				wsr.logger.WithFields(log.Fields{
 					ErrorTag: err.Error(),
 				}).Info("[WSReceiver] channel closed")
-				return
+				return nil
 			}
 
 			wsr.logger.WithFields(log.Fields{
 				ErrorTag: err.Error(),
 			}).Error("[WSReceiver] there was an error reading the message")
+
+			return ErrReadingWSMessage
 		}
 		if message == nil {
 			continue
 		}
 		wsr.logger.Debug("[WSReceiver] message read")
-		go wsr.SendMessageToQueue(message)
+		err = wsr.SendMessageToQueue(message)
+		if err != nil {
+			return err
+		}
 
 	}
 }
 
-func (wsr *DefaultWSReceiver) SendMessageToQueue(message []byte) {
-	message = bytes.TrimSpace(bytes.Replace(message, []byte("\n"), []byte(" "), -1)) //todo: I am assuming that this is parsing the message, improve it with a function
-
+func (wsr *DefaultWSReceiver) SendMessageToQueue(message []byte) error {
 	wsr.logger.WithFields(log.Fields{
-		MessageTag: message,
+		MessageTag: string(message),
 	}).Info("[WSReceiver] sending message to queue")
 
 	err := wsr.queue.SendMessage(message)
 	if err != nil {
 		wsr.logger.WithFields(log.Fields{
-			MessageTag: message,
+			MessageTag: string(message),
 			ErrorTag:   err.Error(),
-		}).Error("[WSReceiver] there was an error writing message '%s' into queue")
-		return
+		}).Error("[WSReceiver] there was an error writing message into queue")
+		return ErrWritingMessageInQueue
 	}
 
 	wsr.logger.WithFields(log.Fields{
-		MessageTag: message,
+		MessageTag: string(message),
 	}).Debug("[WSReceiver] message sent to queue")
+
+	return nil
 }
+
+// log tags
+const (
+	MessageTag    = "message"
+	ErrorTag      = "error"
+	SubscriberTag = "subscriber"
+)
+
+// errors
+var ErrReadingWSMessage = errors.Errorf("error reading message from websocket")
+var ErrWritingMessageInQueue = errors.Errorf("error writing message to queue")

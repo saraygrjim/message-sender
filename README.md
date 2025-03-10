@@ -14,15 +14,17 @@
 - [ ] Queue
     - [X] Basic connect, read and send
     - [ ] Configure security and more parameters
-- [x] Organize project structure following clean architecture
-- [x] Cmd
+- [X] Organize project structure following clean architecture
+- [X] Cmd
 - [X] Graph to initiate the app
 - [ ] Tests for all the app
+    - [X] Microservice 1
+    - [ ] Microservice 2
+    - [ ] Subscriber
 - [X] Improve logs
 - [X] Makefile
-- [x] Improve naming
+- [X] Improve naming
 - [ ] Serve test html in a port
-
 
 ### Start rabbitmq image
 

@@ -21,11 +21,11 @@ func Receiver() {
 	})
 
 	port := 5672
-	var config rabbitmqqueue.QueueConfig
+	var config rabbitmq.QueueConfig
 	config.Port = &port
 	config.Logger = logger
 	config.Name = "messages-sender-queue"
-	queue, err := rabbitmqqueue.NewQueueConnection(config)
+	queue, err := rabbitmq.NewQueueConnection(config)
 	if err != nil {
 		panic(err)
 	}
@@ -53,11 +53,11 @@ func Broadcaster() {
 	})
 
 	port := 5672
-	var config rabbitmqqueue.QueueConfig
+	var config rabbitmq.QueueConfig
 	config.Port = &port
 	config.Logger = logger
 	config.Name = "messages-sender-queue"
-	queue, err := rabbitmqqueue.NewQueueConnection(config)
+	queue, err := rabbitmq.NewQueueConnection(config)
 	if err != nil {
 		panic(err)
 	}

@@ -1,4 +1,4 @@
-package rabbitmqqueue
+package rabbitmq_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"log"
+	"message-sender/internal/rabbitmq"
 	"os"
 	"testing"
 )
@@ -71,50 +72,50 @@ func TestMain(m *testing.M) {
 }
 
 func Test_DummyTest(t *testing.T) {
-	config := QueueConfig{
+	config := rabbitmq.QueueConfig{
 		Logger: logrus.New(),
 		Port:   &testObject.port,
 	}
 
-	queue, err := NewQueueConnection(config)
+	queue, err := rabbitmq.NewQueueConnection(config)
 	require.NotNil(t, queue)
 	require.Nil(t, err)
 }
 
 func TestNewQueueConnection(t *testing.T) {
 	t.Run("Should not be able to connect a queue without Logger", func(t *testing.T) {
-		config := QueueConfig{}
-		queue, err := NewQueueConnection(config)
+		config := rabbitmq.QueueConfig{}
+		queue, err := rabbitmq.NewQueueConnection(config)
 		require.Nil(t, queue)
 		require.NotNil(t, err)
 	})
 	t.Run("Should be able to connect a queue without Port", func(t *testing.T) {
-		config := QueueConfig{
+		config := rabbitmq.QueueConfig{
 			Logger: logrus.New(),
 		}
 
-		queue, err := NewQueueConnection(config)
+		queue, err := rabbitmq.NewQueueConnection(config)
 		require.Nil(t, queue)
 		require.NotNil(t, err)
 	})
 	t.Run("Should be able to connect a queue", func(t *testing.T) {
-		config := QueueConfig{
+		config := rabbitmq.QueueConfig{
 			Logger: logrus.New(),
 			Port:   &testObject.port,
 		}
 
-		queue, err := NewQueueConnection(config)
+		queue, err := rabbitmq.NewQueueConnection(config)
 		require.NotNil(t, queue)
 		require.Nil(t, err)
 	})
 }
 
 func TestSendMessage_Success(t *testing.T) {
-	config := QueueConfig{
+	config := rabbitmq.QueueConfig{
 		Logger: logrus.New(),
 		Port:   &testObject.port,
 	}
-	queue, err := NewQueueConnection(config)
+	queue, err := rabbitmq.NewQueueConnection(config)
 	require.NotNil(t, queue)
 	require.Nil(t, err)
 
@@ -133,11 +134,11 @@ func TestSendMessage_Success(t *testing.T) {
 }
 
 func TestSendMessage_Error(t *testing.T) {
-	config := QueueConfig{
+	config := rabbitmq.QueueConfig{
 		Logger: logrus.New(),
 		Port:   &testObject.port,
 	}
-	queue, err := NewQueueConnection(config)
+	queue, err := rabbitmq.NewQueueConnection(config)
 	require.NotNil(t, queue)
 	require.Nil(t, err)
 
@@ -151,11 +152,11 @@ func TestSendMessage_Error(t *testing.T) {
 }
 
 func TestReadMessage_Success(t *testing.T) {
-	config := QueueConfig{
+	config := rabbitmq.QueueConfig{
 		Logger: logrus.New(),
 		Port:   &testObject.port,
 	}
-	queue, err := NewQueueConnection(config)
+	queue, err := rabbitmq.NewQueueConnection(config)
 	require.NotNil(t, queue)
 	require.Nil(t, err)
 
@@ -169,11 +170,11 @@ func TestReadMessage_Success(t *testing.T) {
 }
 
 func TestReadMessage_Error(t *testing.T) {
-	config := QueueConfig{
+	config := rabbitmq.QueueConfig{
 		Logger: logrus.New(),
 		Port:   &testObject.port,
 	}
-	queue, err := NewQueueConnection(config)
+	queue, err := rabbitmq.NewQueueConnection(config)
 	require.NotNil(t, queue)
 	require.Nil(t, err)
 

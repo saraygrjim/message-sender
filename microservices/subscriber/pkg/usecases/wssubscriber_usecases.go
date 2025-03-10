@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"github.com/go-errors/errors"
 	log "github.com/sirupsen/logrus"
 	"message-sender/internal/websocket"
 )
@@ -31,7 +32,7 @@ var _ WSSubscriber = (*DefaultWSSubscriber)(nil)
 
 type DefaultWSSubscriber struct {
 	logger     *log.Logger
-	connection *websocket.Connection
+	connection *websocket.WSConnection
 }
 
 func (s DefaultWSSubscriber) ReadMessage() error {
@@ -43,8 +44,11 @@ func (s DefaultWSSubscriber) ReadMessage() error {
 			s.logger.WithFields(log.Fields{
 				ErrorTag: err.Error(),
 			}).Error("Error reading message")
-			return err
+			e := ErrReadingWSMessage
+			return e
 		}
 		s.logger.WithFields(log.Fields{MessageTag: string(msg)}).Info("📩 Message received")
 	}
 }
+
+var ErrReadingWSMessage = errors.Errorf("error reading message from websocket")

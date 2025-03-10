@@ -11,12 +11,14 @@ const (
 	ErrorTag = "error"
 )
 
-type Connection struct {
-	conn   *websocket.Conn
-	logger *log.Logger
+type Connection interface {
+	Close() error
+	ReadMessage() ([]byte, error)
+	WriteMessage(msg []byte) error
+	RemoteAddr() string
 }
 
-func NewConnection(w http.ResponseWriter, r *http.Request, logger *log.Logger) (*Connection, error) {
+func NewConnection(w http.ResponseWriter, r *http.Request, logger *log.Logger) (*WSConnection, error) {
 	if logger == nil {
 		return nil, errors.New("option 'Logger' is mandatory")
 	}
@@ -35,13 +37,13 @@ func NewConnection(w http.ResponseWriter, r *http.Request, logger *log.Logger) (
 		return nil, err
 	}
 
-	return &Connection{
+	return &WSConnection{
 		logger: logger,
 		conn:   conn,
 	}, nil
 }
 
-func NewClient(url string, logger *log.Logger) (*Connection, error) {
+func NewClient(url string, logger *log.Logger) (*WSConnection, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		logger.WithFields(log.Fields{
@@ -50,26 +52,33 @@ func NewClient(url string, logger *log.Logger) (*Connection, error) {
 		return nil, err
 	}
 
-	return &Connection{
+	return &WSConnection{
 		logger: logger,
 		conn:   conn,
 	}, nil
 }
 
-func (c Connection) Close() error {
+type WSConnection struct {
+	conn   *websocket.Conn
+	logger *log.Logger
+}
+
+var _ Connection = (*WSConnection)(nil)
+
+func (c WSConnection) Close() error {
 	return c.conn.Close()
 }
 
-func (c Connection) ReadMessage() ([]byte, error) {
+func (c WSConnection) ReadMessage() ([]byte, error) {
 	_, msg, err := c.conn.ReadMessage()
 	return msg, err
 }
 
-func (c Connection) WriteMessage(msg []byte) error {
+func (c WSConnection) WriteMessage(msg []byte) error {
 	return c.conn.WriteMessage(websocket.TextMessage, msg)
 }
 
-func (c Connection) RemoteAddr() string {
+func (c WSConnection) RemoteAddr() string {
 	return c.conn.RemoteAddr().String()
 }
 
