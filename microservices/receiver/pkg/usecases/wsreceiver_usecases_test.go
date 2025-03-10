@@ -26,8 +26,7 @@ func (m *MockQueue) SendMessage(msg []byte) error {
 }
 
 func (m *MockQueue) ReadMessage() ([]byte, error) {
-	args := m.Called()
-	return args.Get(0).([]byte), args.Error(1)
+	return nil, errors.New("not implemented")
 }
 
 func (m *MockQueue) Close() error {
@@ -35,21 +34,21 @@ func (m *MockQueue) Close() error {
 	return args.Error(0)
 }
 
-var _ websocket.Connection = (*MockWebSocketConnection)(nil)
+var _ websocket.Connection = (*MockWSConnection)(nil)
 
-type MockWebSocketConnection struct {
+type MockWSConnection struct {
 	mock.Mock
 }
 
-func (m *MockWebSocketConnection) WriteMessage(_ []byte) error {
+func (m *MockWSConnection) WriteMessage(_ []byte) error {
 	return errors.New("not implemented")
 }
 
-func (m *MockWebSocketConnection) RemoteAddr() string {
+func (m *MockWSConnection) RemoteAddr() string {
 	return ""
 }
 
-func (m *MockWebSocketConnection) ReadMessage() ([]byte, error) {
+func (m *MockWSConnection) ReadMessage() ([]byte, error) {
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -57,49 +56,51 @@ func (m *MockWebSocketConnection) ReadMessage() ([]byte, error) {
 	return args.Get(0).([]byte), args.Error(1)
 }
 
-func (m *MockWebSocketConnection) Close() error {
+func (m *MockWSConnection) Close() error {
 	args := m.Called()
 	return args.Error(0)
 }
 
-func TestNewWSReceiver_Ok(t *testing.T) {
+func TestNewWSReceiver_Success(t *testing.T) {
 	logger := logrus.New()
 	queue := new(MockQueue)
 
-	t.Run("Should be able to create a receiver", func(t *testing.T) {
-		receiver, err := usecases.NewWSReceiver(usecases.DefaultWSReceiverOptions{
-			Queue:  queue,
-			Logger: logger,
-		})
-		assert.NoError(t, err)
-		assert.NotNil(t, receiver)
-	})
+	var opts = usecases.DefaultWSReceiverOptions{
+		Queue:  queue,
+		Logger: logger,
+	}
+
+	receiver, err := usecases.NewWSReceiver(opts)
+	assert.NoError(t, err)
+	assert.NotNil(t, receiver)
 }
 
-func TestNewWSReceiver_Error(t *testing.T) {
+func TestNewWSReceiver_Failure(t *testing.T) {
 	logger := logrus.New()
 	queue := new(MockQueue)
 
 	t.Run("Should not be able to create a receiver if Queue is equal to nil", func(t *testing.T) {
-		_, err := usecases.NewWSReceiver(usecases.DefaultWSReceiverOptions{
+		var opts = usecases.DefaultWSReceiverOptions{
 			Queue:  nil,
 			Logger: logger,
-		})
+		}
+		_, err := usecases.NewWSReceiver(opts)
 		require.Error(t, err)
 		require.Equal(t, "option 'Queue' is mandatory", err.Error())
 	})
 
 	t.Run("Should no be able to crate a receiver if Logger is equal to nil", func(t *testing.T) {
-		_, err := usecases.NewWSReceiver(usecases.DefaultWSReceiverOptions{
+		var opts = usecases.DefaultWSReceiverOptions{
 			Queue:  queue,
 			Logger: nil,
-		})
+		}
+		_, err := usecases.NewWSReceiver(opts)
 		require.Error(t, err)
 		require.Equal(t, "option 'Logger' is mandatory", err.Error())
 	})
 }
 
-func TestSendMessageToQueue_Ok(t *testing.T) {
+func TestSendMessageToQueue_Success(t *testing.T) {
 	logger := logrus.New()
 	queue := new(MockQueue)
 
@@ -118,7 +119,7 @@ func TestSendMessageToQueue_Ok(t *testing.T) {
 	queue.AssertCalled(t, "SendMessage", message)
 }
 
-func TestSendMessageToQueue_Error(t *testing.T) {
+func TestSendMessageToQueue_Failure(t *testing.T) {
 	logger := logrus.New()
 	queue := new(MockQueue)
 
@@ -139,10 +140,10 @@ func TestSendMessageToQueue_Error(t *testing.T) {
 	queue.AssertCalled(t, "SendMessage", message)
 }
 
-func TestReadMessage_Ok(t *testing.T) {
+func TestReadMessage_Success(t *testing.T) {
 	logger := logrus.New()
 	queue := new(MockQueue)
-	conn := new(MockWebSocketConnection)
+	conn := new(MockWSConnection)
 
 	receiver, err := usecases.NewWSReceiver(usecases.DefaultWSReceiverOptions{
 		Queue:  queue,
@@ -174,10 +175,10 @@ func TestReadMessage_Ok(t *testing.T) {
 
 }
 
-func TestReadMessage_Error(t *testing.T) {
+func TestReadMessage_Failure(t *testing.T) {
 	logger := logrus.New()
 	queue := new(MockQueue)
-	conn := new(MockWebSocketConnection)
+	conn := new(MockWSConnection)
 
 	receiver, err := usecases.NewWSReceiver(usecases.DefaultWSReceiverOptions{
 		Queue:  queue,

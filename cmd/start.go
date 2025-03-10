@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"message-sender/internal/rabbitmq"
 	broadcasterGraph "message-sender/microservices/broadcaster/pkg/graph"
 	receiverGraph "message-sender/microservices/receiver/pkg/graph"
 	subscriberGraph "message-sender/microservices/subscriber/pkg/graph"
+	"net/http"
 	"os"
 	"time"
 )
@@ -38,8 +40,21 @@ func Receiver() {
 		panic(err)
 	}
 
-	receiver.StartWebsocketReceiverServer()
+	go receiver.StartWebsocketReceiverServer()
+	serveHTML(logger)
+}
 
+func serveHTML(l *log.Logger) {
+	fs := http.FileServer(http.Dir("./static"))
+	http.Handle("/", fs)
+
+	port := 9090
+	l.Infof("Server running on http://localhost:%d", port)
+	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	if err != nil {
+		l.WithFields(log.Fields{"error": err}).Error("Error starting server")
+		panic(err)
+	}
 }
 
 func Broadcaster() {

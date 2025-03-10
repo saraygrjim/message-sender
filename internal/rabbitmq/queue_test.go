@@ -133,7 +133,7 @@ func TestSendMessage_Success(t *testing.T) {
 
 }
 
-func TestSendMessage_Error(t *testing.T) {
+func TestSendMessage_Failure(t *testing.T) {
 	config := rabbitmq.QueueConfig{
 		Logger: logrus.New(),
 		Port:   &testObject.port,
@@ -169,7 +169,7 @@ func TestReadMessage_Success(t *testing.T) {
 	require.Equal(t, message, string(msg))
 }
 
-func TestReadMessage_Error(t *testing.T) {
+func TestReadMessage_Failure(t *testing.T) {
 	config := rabbitmq.QueueConfig{
 		Logger: logrus.New(),
 		Port:   &testObject.port,

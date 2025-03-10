@@ -40,5 +40,7 @@ func (a WSBroadcasterAdapter) ServeWebsocketBroadcasterHTTP(w http.ResponseWrite
 		panic(err)
 	}
 
-	go a.wsBroadcaster.ReadClientMessage(conn)
+	go func() {
+		_ = a.wsBroadcaster.ReadClientMessage(conn)
+	}()
 }

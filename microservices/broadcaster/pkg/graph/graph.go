@@ -72,7 +72,7 @@ func (r *Broadcaster) StartWebsocketBroadcasterServer() {
 }
 
 func (r *Broadcaster) StartBroadcaster() {
-	_, err := r.broadcaster.ReadQueueMessage()
+	err := r.broadcaster.ReadAndSend()
 	if err != nil {
 		panic(err)
 	}

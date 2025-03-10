@@ -86,7 +86,7 @@ func NewQueueConnection(config QueueConfig) (*RabbitMQQueue, error) {
 func (q RabbitMQQueue) SendMessage(message []byte) error {
 	q.logger.WithFields(log.Fields{
 		QueueNameTag: q.queue.Name,
-		MessageTag:   message,
+		MessageTag:   string(message),
 	}).Info("[RabbitMQQueue] sending message")
 
 	queueMessage := rabbitmq.Publishing{
@@ -98,7 +98,7 @@ func (q RabbitMQQueue) SendMessage(message []byte) error {
 	if err != nil {
 		q.logger.WithFields(log.Fields{
 			QueueNameTag: q.queue.Name,
-			MessageTag:   message,
+			MessageTag:   string(message),
 			ErrorTag:     err.Error(),
 		}).Error("[RabbitMQQueue] error sending message to RabbitMQ")
 		return ErrSendingMessage
@@ -106,7 +106,7 @@ func (q RabbitMQQueue) SendMessage(message []byte) error {
 
 	q.logger.WithFields(log.Fields{
 		QueueNameTag: q.queue.Name,
-		MessageTag:   message,
+		MessageTag:   string(message),
 	}).Debug("[RabbitMQQueue] message sent")
 	return nil
 }

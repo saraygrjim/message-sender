@@ -40,5 +40,7 @@ func (a WSReceiverAdapter) ServeWebsocketReceiverHTTP(w http.ResponseWriter, r *
 		panic(err)
 	}
 
-	go a.wsReceiver.ReadMessage(conn)
+	go func() {
+		_ = a.wsReceiver.ReadMessage(conn)
+	}()
 }

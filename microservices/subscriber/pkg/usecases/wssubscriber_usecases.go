@@ -52,3 +52,8 @@ func (s DefaultWSSubscriber) ReadMessage() error {
 }
 
 var ErrReadingWSMessage = errors.Errorf("error reading message from websocket")
+
+const (
+	MessageTag = "message"
+	ErrorTag   = "error"
+)

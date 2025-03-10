@@ -10,11 +10,11 @@ import (
 )
 
 type WSBroadcaster interface {
-	ReadQueueMessage() ([]byte, error)
+	ReadAndSend() error
 	SendMessageToWS(message []byte) error
-	ReadClientMessage(conn *websocket.WSConnection) error
-	NewClient(conn *websocket.WSConnection)
-	DisconnectClient(conn *websocket.WSConnection)
+	ReadClientMessage(conn websocket.Connection) error
+	NewClient(conn websocket.Connection)
+	DisconnectClient(conn websocket.Connection)
 }
 type DefaultWSBroadcasterOptions struct {
 	Queue  rabbitmqqueue.Queue
@@ -31,7 +31,7 @@ func NewWSBroadcaster(opts DefaultWSBroadcasterOptions) (*DefaultWSBroadcaster, 
 
 	return &DefaultWSBroadcaster{
 		queue:   opts.Queue,
-		clients: make(map[*websocket.WSConnection]bool),
+		clients: make(map[websocket.Connection]bool),
 		logger:  opts.Logger,
 	}, nil
 }
@@ -40,12 +40,12 @@ var _ WSBroadcaster = (*DefaultWSBroadcaster)(nil)
 
 type DefaultWSBroadcaster struct {
 	queue   rabbitmqqueue.Queue
-	clients map[*websocket.WSConnection]bool
+	clients map[websocket.Connection]bool
 	mu      sync.Mutex
 	logger  *log.Logger
 }
 
-func (wsb *DefaultWSBroadcaster) ReadQueueMessage() ([]byte, error) {
+func (wsb *DefaultWSBroadcaster) ReadAndSend() error {
 	for {
 		wsb.logger.Info("[WSBroadcaster] reading queue messages")
 
@@ -53,12 +53,16 @@ func (wsb *DefaultWSBroadcaster) ReadQueueMessage() ([]byte, error) {
 		if err != nil {
 			wsb.logger.WithFields(log.Fields{
 				ErrorTag: err.Error(),
-			}).Fatal("[WSBroadcaster] error reading queue messages")
+			}).Error("[WSBroadcaster] error reading queue messages")
 
-			return nil, ErrReadingQueueMessages
+			return ErrReadingQueueMessages
 		}
 
-		go wsb.SendMessageToWS(message)
+		if message != nil {
+			go func() {
+				_ = wsb.SendMessageToWS(message)
+			}()
+		}
 	}
 }
 
@@ -87,7 +91,7 @@ func (wsb *DefaultWSBroadcaster) SendMessageToWS(message []byte) error {
 	}
 }
 
-func (wsb *DefaultWSBroadcaster) ReadClientMessage(conn *websocket.WSConnection) error {
+func (wsb *DefaultWSBroadcaster) ReadClientMessage(conn websocket.Connection) error {
 	wsb.NewClient(conn)
 	for {
 		_, err := conn.ReadMessage()
@@ -98,7 +102,7 @@ func (wsb *DefaultWSBroadcaster) ReadClientMessage(conn *websocket.WSConnection)
 	}
 }
 
-func (wsb *DefaultWSBroadcaster) NewClient(conn *websocket.WSConnection) {
+func (wsb *DefaultWSBroadcaster) NewClient(conn websocket.Connection) {
 	wsb.mu.Lock()
 	wsb.clients[conn] = true
 	wsb.mu.Unlock()
@@ -109,7 +113,7 @@ func (wsb *DefaultWSBroadcaster) NewClient(conn *websocket.WSConnection) {
 
 }
 
-func (wsb *DefaultWSBroadcaster) DisconnectClient(conn *websocket.WSConnection) {
+func (wsb *DefaultWSBroadcaster) DisconnectClient(conn websocket.Connection) {
 	wsb.mu.Lock()
 	delete(wsb.clients, conn)
 	wsb.mu.Unlock()

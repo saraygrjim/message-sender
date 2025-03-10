@@ -6,7 +6,7 @@
     - [X] Send messages to queue
 - [X] Microservice 2
     - [X] Read messages from queue
-    - [X] Send messages to subscriptors
+    - [X] Send messages to subscriptions
 - [X] Subscribers
     - [X] Subscribes to messages
     - [X] Listen messages
@@ -17,14 +17,16 @@
 - [X] Organize project structure following clean architecture
 - [X] Cmd
 - [X] Graph to initiate the app
-- [ ] Tests for all the app
+- [X] Tests for all the app
     - [X] Microservice 1
-    - [ ] Microservice 2
-    - [ ] Subscriber
+    - [X] Microservice 2
+    - [X] Subscriber
 - [X] Improve logs
 - [X] Makefile
 - [X] Improve naming
-- [ ] Serve test html in a port
+- [X] Serve test html in a port
+- [ ] Channels to listen the go routines errors 
+- [ ] Review naming
 
 ### Start rabbitmq image
 
