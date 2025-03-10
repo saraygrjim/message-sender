@@ -1,4 +1,3 @@
-// Microservice 1
 package usecases
 
 import "net/http"

@@ -1,4 +1,3 @@
-// Microservice 2
 package usecases
 
 import (

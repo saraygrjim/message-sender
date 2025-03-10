@@ -1,4 +1,3 @@
-// Microservice 1
 package usecases
 
 import (
@@ -93,11 +92,9 @@ func (wsr *DefaultWSReceiver) SendMessageToQueue(message []byte) error {
 
 // log tags
 const (
-	MessageTag    = "message"
-	ErrorTag      = "error"
-	SubscriberTag = "subscriber"
+	MessageTag = "message"
+	ErrorTag   = "error"
 )
 
-// errors
 var ErrReadingWSMessage = errors.Errorf("error reading message from websocket")
 var ErrWritingMessageInQueue = errors.Errorf("error writing message to queue")
